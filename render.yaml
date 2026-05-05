@@ -1,17 +1,12 @@
-# Render service spec for the Vanigan Support backend.
-#
-# NOTE: This file lives inside /backend so Render's Blueprint auto-detection
-# (which only reads render.yaml at the repo root) will NOT pick it up. Use
-# this file as a reference when configuring the service manually via the
-# Render dashboard:
-#   New + → Web Service → pick this repo → set Root Directory = "backend"
-# then paste the envVars below into the Environment tab.
+# Render Blueprint for the Vanigan Support backend.
+# Lives at the repo root so Render auto-detects it on "New Blueprint".
 services:
   - type: web
     name: vanigan-support-backend
     runtime: node
     plan: free
     region: singapore
+    rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
     healthCheckPath: /health
