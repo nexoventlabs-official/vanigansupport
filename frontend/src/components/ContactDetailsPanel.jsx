@@ -18,6 +18,7 @@ import { resolveCountry, formatPhone } from '../utils/country';
 import { ist, windowState, formatCountdown } from '../utils/time';
 import { CALL_STATUSES } from '../utils/callStatus';
 import ChannelIcon, { getSourceMeta } from './ChannelIcon.jsx';
+import CountryFlag from './CountryFlag.jsx';
 import Avatar from './Avatar.jsx';
 import NotesDialog from './NotesDialog.jsx';
 
@@ -160,9 +161,12 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
         <div className="text-lg font-semibold text-wati-text inline-flex items-center gap-2">
           <span className="truncate">{displayName}</span>
           {country.iso2 && (
-            <span title={country.name} className="text-xl leading-none">
-              {country.flag}
-            </span>
+            <CountryFlag
+              iso2={country.iso2}
+              emoji={country.flag}
+              title={country.name}
+              size={18}
+            />
           )}
         </div>
         <div className="text-xs text-wati-muted mt-0.5">{country.name}</div>
