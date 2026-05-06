@@ -48,3 +48,10 @@ services:
         sync: false
       - key: REDIS_FLUSH_ON_STARTUP
         value: "false"
+      # Admin panel (/admin) credentials + JWT signing secret
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        value: admin
+      - key: JWT_SECRET
+        generateValue: true

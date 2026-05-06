@@ -13,6 +13,7 @@ const messagesRoutes = require('./routes/messages');
 const templatesRoutes = require('./routes/templates');
 const uploadRoutes = require('./routes/upload');
 const webhookRoutes = require('./routes/webhook');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const server = http.createServer(app);
@@ -35,6 +36,7 @@ app.use('/api/contacts', contactsRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/templates', templatesRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 & error
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

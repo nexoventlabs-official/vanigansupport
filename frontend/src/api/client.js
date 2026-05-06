@@ -4,6 +4,19 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const api = axios.create({ baseURL: `${API_URL}/api`, timeout: 30000 });
 
+// Attach the admin JWT to /admin/* requests when present in localStorage so
+// the rest of the app's calls remain unauthenticated.
+api.interceptors.request.use((config) => {
+  if (config.url && config.url.startsWith('/admin/')) {
+    const token = localStorage.getItem('vanigan:adminToken');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export const Contacts = {
   list: (params) => api.get('/contacts', { params }).then((r) => r.data),
   create: (body) => api.post('/contacts', body).then((r) => r.data),
@@ -46,6 +59,33 @@ export const Uploads = {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (e) => onProgress && onProgress(Math.round((e.loaded * 100) / (e.total || 1))),
     }).then((r) => r.data);
+  },
+};
+
+// --- Admin API -------------------------------------------------------------
+// All admin requests (except `login`) get a Bearer token attached by the
+// interceptor above when `vanigan:adminToken` is set in localStorage.
+export const Admin = {
+  login: (username, password) =>
+    api.post('/admin/login', { username, password }).then((r) => r.data),
+  me: () => api.get('/admin/me').then((r) => r.data),
+  listContacts: (params) =>
+    api.get('/admin/contacts', { params }).then((r) => r.data),
+  getContact: (id) =>
+    api.get(`/admin/contacts/${id}`).then((r) => r.data),
+  // Returns a Blob - caller is responsible for triggering the download.
+  reportUrl: ({ format = 'xlsx', preset = 'monthly', from, to }) => {
+    const params = new URLSearchParams({ format, preset });
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    return `${API_URL}/api/admin/report?${params.toString()}`;
+  },
+  downloadReport: async ({ format = 'xlsx', preset = 'monthly', from, to }) => {
+    const params = { format, preset };
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const r = await api.get('/admin/report', { params, responseType: 'blob' });
+    return r.data;
   },
 };
 

@@ -11,8 +11,11 @@ import {
   Hash,
   X,
   Clock,
+  Pencil,
+  Check,
+  History,
 } from 'lucide-react';
-import { Messages } from '../api/client';
+import { Messages, Contacts } from '../api/client';
 import { socket } from '../api/socket';
 import { resolveCountry, formatPhone } from '../utils/country';
 import { ist, windowState, formatCountdown } from '../utils/time';
@@ -21,6 +24,7 @@ import ChannelIcon, { getSourceMeta } from './ChannelIcon.jsx';
 import CountryFlag from './CountryFlag.jsx';
 import Avatar from './Avatar.jsx';
 import NotesDialog from './NotesDialog.jsx';
+import CallStatusHistoryDialog from './CallStatusHistoryDialog.jsx';
 
 function Field({ icon: Icon, label, children, border = true }) {
   if (!children) return null;
@@ -54,6 +58,12 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
   const [firstMessage, setFirstMessage] = useState(null);
   const [, tick] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Inline name editor: when `editingName` is true the heading turns into
+  // an <input> seeded with `nameDraft`. Saving calls Contacts.update().
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
   // Tick every second so the countdown stays fresh.
   useEffect(() => {
@@ -94,6 +104,31 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
     };
   }, [contact?._id]);
 
+  // Sync the editor's draft when a different contact is opened.
+  useEffect(() => {
+    setEditingName(false);
+    setNameDraft(contact?.name || contact?.profileName || '');
+  }, [contact?._id]);
+
+  async function saveName() {
+    if (!contact?._id) return;
+    const trimmed = (nameDraft || '').trim();
+    if (trimmed === (contact.name || '')) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const updated = await Contacts.update(contact._id, { name: trimmed });
+      onContactUpdate && onContactUpdate(updated);
+      setEditingName(false);
+    } catch (e) {
+      alert('Failed to update name: ' + (e?.response?.data?.error || e.message));
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   const country = useMemo(() => resolveCountry(contact?.waId), [contact?.waId]);
   const ws = windowState(contact?.lastCustomerMessageAt, contact?.source);
 
@@ -109,6 +144,12 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
   // capture time, and finally to when the contact record was created.
   const startedAtIso = firstMessage?.createdAt || contact.referral?.capturedAt || contact.createdAt;
   const startedAt = startedAtIso ? ist(startedAtIso) : null;
+
+  const callHistory = Array.isArray(contact.callStatusHistory) ? contact.callStatusHistory : [];
+  const callHistorySorted = [...callHistory].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  );
+  const latestCall = callHistorySorted[0] || null;
 
   // Notes history - newest first. Falls back to the legacy single `comment`
   // field for contacts created before the notes[] migration.
@@ -151,7 +192,58 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
             className="ring-4 ring-white shadow-sm"
           />
           <div className="mt-3 text-[19px] font-medium text-wati-text flex items-center gap-2 text-center break-words max-w-full">
-            <span className="truncate">{displayName}</span>
+            {editingName ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveName();
+                    else if (e.key === 'Escape') {
+                      setNameDraft(contact.name || contact.profileName || '');
+                      setEditingName(false);
+                    }
+                  }}
+                  disabled={savingName}
+                  placeholder="Enter name"
+                  className="border border-gray-300 rounded px-2 py-0.5 text-[16px] font-medium outline-none focus:border-wati-primary min-w-0 max-w-[12rem]"
+                />
+                <button
+                  onClick={saveName}
+                  disabled={savingName}
+                  className="p-1.5 rounded-full bg-wati-primary text-white hover:bg-wati-primaryDark disabled:opacity-50"
+                  title="Save"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  onClick={() => {
+                    setNameDraft(contact.name || contact.profileName || '');
+                    setEditingName(false);
+                  }}
+                  disabled={savingName}
+                  className="p-1.5 rounded-full hover:bg-gray-200 text-wati-muted disabled:opacity-50"
+                  title="Cancel"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="truncate">{displayName}</span>
+                <button
+                  onClick={() => {
+                    setNameDraft(contact.name || contact.profileName || '');
+                    setEditingName(true);
+                  }}
+                  className="p-1 rounded-full hover:bg-gray-100 text-wati-muted"
+                  title="Edit name"
+                >
+                  <Pencil size={14} />
+                </button>
+              </>
+            )}
           </div>
           <div className="text-[14px] text-wati-muted mt-1 flex items-center gap-1.5">
             <a href={`tel:+${String(contact.waId).replace(/\D/g, '')}`} className="hover:underline">
@@ -240,7 +332,24 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
           )}
 
           <Field icon={MessageCircle} label="Call status" border={false}>
-            {callStatusLabel}
+            <div className="flex items-center justify-between gap-2">
+              <span>{callStatusLabel}</span>
+              {callHistorySorted.length > 0 && (
+                <button
+                  onClick={() => setHistoryOpen(true)}
+                  className="text-[12px] text-wati-primary hover:underline inline-flex items-center gap-1 font-normal"
+                  title="View call status history"
+                >
+                  <History size={13} />
+                  <span>History ({callHistorySorted.length})</span>
+                </button>
+              )}
+            </div>
+            {latestCall && (
+              <div className="text-[11px] text-wati-muted mt-1">
+                Last changed {ist(latestCall.createdAt).format('DD MMM YYYY, h:mm A')}
+              </div>
+            )}
           </Field>
         </div>
 
@@ -298,6 +407,12 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
           contact={contact}
           onClose={() => setNotesOpen(false)}
           onContactUpdate={onContactUpdate}
+        />
+      )}
+      {historyOpen && (
+        <CallStatusHistoryDialog
+          contact={contact}
+          onClose={() => setHistoryOpen(false)}
         />
       )}
     </aside>

@@ -40,6 +40,18 @@ const ContactSchema = new mongoose.Schema(
       capturedAt: Date,
     },
     callStatus: { type: String, enum: CALL_STATUSES, default: 'none' },
+    // Append-only audit log of every call-status change. Each entry stores the
+    // status that was *set* and a timestamp; the latest entry's `status` should
+    // always equal `callStatus`. Cleared on `clearChat`.
+    callStatusHistory: [
+      new mongoose.Schema(
+        {
+          status: { type: String, enum: CALL_STATUSES, required: true },
+          changedBy: { type: String, default: '' }, // reserved for future auth
+        },
+        { timestamps: { createdAt: true, updatedAt: false }, _id: true }
+      ),
+    ],
     // Legacy single-field note. New writes go into `notes[]` below; we keep
     // this for backward-compat reads and migrate older records lazily.
     comment: { type: String, default: '' },

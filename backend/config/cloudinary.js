@@ -47,6 +47,11 @@ function uploadBuffer(buffer, { folder = 'wati_panel', filename, mime } = {}) {
     // For PDFs uploaded as image, pin the delivered format to pdf so the URL ends in .pdf
     // (otherwise Cloudinary may default to rendering the first page as jpg).
     if (mime === 'application/pdf') options.format = 'pdf';
+    // Audio: browsers (esp. Chrome/Edge on Windows) record voice notes as
+    // audio/webm;codecs=opus, which Meta's WhatsApp Cloud API does NOT accept.
+    // Tell Cloudinary to transcode to MP3 on upload so the delivered URL ends
+    // in .mp3 with Content-Type: audio/mpeg, which Meta accepts unconditionally.
+    if (mime && mime.startsWith('audio/')) options.format = 'mp3';
     const stream = cloudinary.uploader.upload_stream(options,
       (err, result) => (err ? reject(err) : resolve(result))
     );

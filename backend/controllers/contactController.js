@@ -41,7 +41,12 @@ exports.updateContact = async (req, res) => {
   const contact = await Contact.findById(req.params.id);
   if (!contact) return res.status(404).json({ error: 'Not found' });
   if (name !== undefined) contact.name = name;
-  if (callStatus !== undefined) contact.callStatus = callStatus;
+  // When callStatus actually changes, append an entry to the audit log so
+  // the admin panel + details panel can render a full history.
+  if (callStatus !== undefined && callStatus !== contact.callStatus) {
+    contact.callStatus = callStatus;
+    contact.callStatusHistory.push({ status: callStatus });
+  }
   if (comment !== undefined) contact.comment = comment;
   await contact.save();
   emit('contact:upsert', contact);
@@ -105,10 +110,17 @@ exports.clearChat = async (req, res) => {
       console.error('[clearChat] cloudinary folder delete failed', e.message)
     );
 
-    // Reset derived fields on contact but keep identity
+    // Reset derived fields and history on contact, but keep identity
+    // (waId, name, profileName, profilePicUrl, source, referral).
     contact.lastMessageAt = null;
     contact.lastMessagePreview = '';
     contact.unreadCount = 0;
+    contact.callStatus = 'none';
+    contact.callStatusHistory = [];
+    contact.notes = [];
+    contact.comment = '';
+    contact.welcomeSentAt = null;
+    contact.lastCustomerMessageAt = null;
     await contact.save();
 
     emit('chat:cleared', { contactId: contact._id });
