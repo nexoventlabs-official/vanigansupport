@@ -5,16 +5,18 @@ import { LogOut, LayoutDashboard, FileBarChart2, ArrowLeft, MessageSquare } from
 // Every admin route renders inside this shell so logout / nav are consistent.
 export default function AdminShell({ active, onNavigate, onLogout, title, children, onBack }) {
   return (
-    <div className="min-h-screen flex bg-gray-50 text-gray-800">
-      <aside className="w-60 shrink-0 bg-wati-text text-white flex flex-col">
-        <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-wati-primary flex items-center justify-center font-bold">V</div>
+    <div className="h-screen flex bg-admin-bg text-admin-text font-sans">
+      <aside className="w-64 shrink-0 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
+        <div className="px-6 py-5 border-b border-white/5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-admin-accent to-admin-accentHover flex items-center justify-center font-bold text-white shadow-premium">
+            V
+          </div>
           <div>
-            <div className="text-[13px] font-semibold">Vanigan</div>
-            <div className="text-[11px] opacity-70">Admin Panel</div>
+            <div className="text-[14px] font-bold text-white tracking-wide">Vanigan</div>
+            <div className="text-[12px] opacity-60 font-medium tracking-wider uppercase">Admin Panel</div>
           </div>
         </div>
-        <nav className="flex-1 py-3 space-y-0.5">
+        <nav className="flex-1 py-4 px-3 space-y-1">
           <NavItem
             icon={LayoutDashboard}
             label="Dashboard"
@@ -27,37 +29,39 @@ export default function AdminShell({ active, onNavigate, onLogout, title, childr
             active={active === 'reports'}
             onClick={() => onNavigate('/admin/reports')}
           />
-          <a
-            href="/"
-            className="flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] hover:bg-white/5 transition-colors"
-          >
-            <MessageSquare size={16} />
-            <span>Chat panel</span>
-          </a>
+          <div className="pt-4 mt-4 border-t border-white/5">
+            <a
+              href="/"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium hover:bg-white/5 hover:text-white transition-all duration-200"
+            >
+              <MessageSquare size={18} className="opacity-70" />
+              <span>Chat panel</span>
+            </a>
+          </div>
         </nav>
         <button
           onClick={onLogout}
-          className="m-3 inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-[13px]"
+          className="m-4 inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/5 hover:bg-red-500/10 hover:text-red-400 text-[13.5px] font-medium transition-all duration-200"
         >
-          <LogOut size={15} />
+          <LogOut size={16} />
           Sign out
         </button>
       </aside>
 
-      <main className="flex-1 min-w-0 flex flex-col">
-        <header className="px-6 py-3 border-b bg-white flex items-center gap-3">
+      <main className="flex-1 min-w-0 flex flex-col relative">
+        <header className="sticky top-0 z-10 px-8 py-4 admin-glass flex items-center gap-4">
           {onBack && (
             <button
               onClick={onBack}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
+              className="p-1.5 -ml-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors"
               title="Back"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={20} />
             </button>
           )}
-          <h1 className="font-semibold text-[16px] flex-1">{title}</h1>
+          <h1 className="font-semibold text-[18px] text-slate-800 flex-1">{title}</h1>
         </header>
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-8 animate-fade-in-up">{children}</div>
       </main>
     </div>
   );
@@ -68,13 +72,13 @@ function NavItem({ icon: Icon, label, active, onClick }) {
     <button
       onClick={onClick}
       className={
-        'w-full flex items-center gap-2.5 px-5 py-2.5 text-[13.5px] transition-colors ' +
+        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-200 ' +
         (active
-          ? 'bg-wati-primary text-white'
-          : 'hover:bg-white/5 text-white/85')
+          ? 'bg-admin-accent text-white shadow-md'
+          : 'hover:bg-white/5 hover:text-white')
       }
     >
-      <Icon size={16} />
+      <Icon size={18} className={active ? 'opacity-100' : 'opacity-70'} />
       <span>{label}</span>
     </button>
   );

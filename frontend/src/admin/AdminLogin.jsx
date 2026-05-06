@@ -25,53 +25,59 @@ export default function AdminLogin({ onLoggedIn }) {
   }
 
   return (
-    <div className="min-h-screen w-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-wati-primary/10 flex items-center justify-center mb-3">
-            <Lock size={26} className="text-wati-primary" />
+    <div className="h-screen w-screen overflow-y-auto flex items-center justify-center bg-slate-50 p-4 relative font-sans">
+      {/* Animated Background Blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+      <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+
+      <div className="admin-glass rounded-2xl shadow-premium p-8 w-full max-w-[400px] relative z-10 animate-fade-in-up">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-admin-accent to-admin-accentHover flex items-center justify-center mb-4 shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+            <Lock size={28} className="text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-wati-text">Admin login</h1>
-          <p className="text-[13px] text-wati-muted mt-1">Vanigan Support panel</p>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Welcome Back</h1>
+          <p className="text-[14px] text-slate-500 mt-1.5 font-medium">Vanigan Support panel</p>
         </div>
 
-        <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-4">
           <label className="block">
-            <span className="text-[12px] uppercase tracking-wide text-wati-muted font-medium">Username</span>
-            <div className="mt-1 relative">
+            <span className="text-[12px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block">Username</span>
+            <div className="relative group">
               <User
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-wati-muted"
+                size={18}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-admin-accent transition-colors"
               />
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-wati-primary focus:bg-white transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl text-sm outline-none focus:border-admin-accent focus:ring-4 focus:ring-admin-accent/10 transition-all shadow-sm"
                 placeholder="admin"
               />
             </div>
           </label>
 
           <label className="block">
-            <span className="text-[12px] uppercase tracking-wide text-wati-muted font-medium">Password</span>
-            <div className="mt-1 relative">
+            <span className="text-[12px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5 block">Password</span>
+            <div className="relative group">
               <Lock
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-wati-muted"
+                size={18}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-admin-accent transition-colors"
               />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-wati-primary focus:bg-white transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl text-sm outline-none focus:border-admin-accent focus:ring-4 focus:ring-admin-accent/10 transition-all shadow-sm"
                 placeholder="••••••••"
               />
             </div>
           </label>
 
           {error && (
-            <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="text-[13px] text-red-600 bg-red-50/80 border border-red-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
               {error}
             </div>
           )}
@@ -79,14 +85,20 @@ export default function AdminLogin({ onLoggedIn }) {
           <button
             type="submit"
             disabled={submitting || !username || !password}
-            className="w-full mt-2 inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-wati-primary hover:bg-wati-primaryDark text-white font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-admin-accent to-admin-accentHover text-white font-medium text-sm shadow-md hover:shadow-premium-hover disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 disabled:transform-none"
           >
-            <LogIn size={16} />
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <LogIn size={18} />
+                <span>Sign in to Dashboard</span>
+              </>
+            )}
           </button>
         </form>
 
-        <div className="text-[11px] text-wati-muted text-center mt-6">
+        <div className="text-[12px] text-slate-400 font-medium text-center mt-8">
           Restricted area. All actions are logged.
         </div>
       </div>

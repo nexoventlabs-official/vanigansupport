@@ -58,28 +58,28 @@ export default function AdminDashboard({ onNavigate, onLogout }) {
       onLogout={onLogout}
       title="Dashboard"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total contacts" value={stats.total} accent="bg-blue-50 text-blue-700" />
-        <StatCard label="Interested" value={stats.interested} accent="bg-green-50 text-green-700" />
-        <StatCard label="Not interested" value={stats.notInterested} accent="bg-red-50 text-red-700" />
-        <StatCard label="No status yet" value={stats.pending} accent="bg-yellow-50 text-yellow-700" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-in-up">
+        <StatCard label="Total contacts" value={stats.total} accent="from-blue-500 to-indigo-600" delay="stagger-1" />
+        <StatCard label="Interested" value={stats.interested} accent="from-emerald-400 to-teal-500" delay="stagger-2" />
+        <StatCard label="Not interested" value={stats.notInterested} accent="from-rose-400 to-red-500" delay="stagger-3" />
+        <StatCard label="No status yet" value={stats.pending} accent="from-amber-400 to-orange-500" delay="stagger-4" />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 p-4 border-b">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm animate-fade-in-up stagger-2">
+        <div className="flex flex-wrap items-center gap-4 p-5 border-b border-slate-100">
+          <div className="relative flex-1 min-w-[200px] group">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-admin-accent transition-colors" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search by name or mobile…"
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-wati-primary"
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 outline-none focus:bg-white focus:border-admin-accent focus:ring-4 focus:ring-admin-accent/10 transition-all"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-wati-primary"
+            className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:border-admin-accent focus:ring-4 focus:ring-admin-accent/10 transition-all cursor-pointer"
           >
             <option value="all">All statuses</option>
             {CALL_STATUSES.map((s) => (
@@ -88,75 +88,112 @@ export default function AdminDashboard({ onNavigate, onLogout }) {
           </select>
           <button
             onClick={load}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white hover:bg-slate-50 text-slate-700 font-medium transition-all hover:shadow-sm"
             title="Refresh"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={loading ? 'animate-spin text-admin-accent' : ''} />
             Refresh
           </button>
         </div>
 
         {error && (
-          <div className="px-4 py-3 text-[13px] text-red-700 bg-red-50 border-b border-red-200">
+          <div className="px-5 py-3.5 text-[13px] text-red-700 bg-red-50 border-b border-red-200 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
             {error}
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto thin-scroll">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-[12px] uppercase tracking-wide text-gray-500">
+            <thead className="bg-slate-50/80 text-[12px] uppercase tracking-wider text-slate-500 border-b border-slate-100">
               <tr>
                 <Th>Contact</Th>
                 <Th>Mobile</Th>
                 <Th>Call status</Th>
                 <Th>First message</Th>
                 <Th>Last message</Th>
-                <Th>Notes</Th>
-                <Th>Status changes</Th>
+                <Th className="text-center">Notes</Th>
+                <Th className="text-center">Changes</Th>
                 <Th aria-label="Actions" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100/80">
               {loading && contacts.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-10 text-gray-400">Loading…</td></tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <Td><div className="h-10 w-40 animate-shimmer rounded-lg" /></Td>
+                    <Td><div className="h-5 w-24 animate-shimmer rounded" /></Td>
+                    <Td><div className="h-6 w-20 animate-shimmer rounded-full" /></Td>
+                    <Td><div className="h-5 w-24 animate-shimmer rounded" /></Td>
+                    <Td><div className="h-5 w-24 animate-shimmer rounded" /></Td>
+                    <Td><div className="h-5 w-8 animate-shimmer rounded mx-auto" /></Td>
+                    <Td><div className="h-5 w-8 animate-shimmer rounded mx-auto" /></Td>
+                    <Td></Td>
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-10 text-gray-400">No contacts found</td></tr>
+                <tr>
+                  <td colSpan={8} className="text-center py-16 text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Search size={32} className="opacity-20 mb-2" />
+                      <div className="font-medium text-slate-500">No contacts found</div>
+                      <div className="text-[13px]">Try adjusting your search or filters.</div>
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 filtered.map((c) => (
                   <tr
                     key={c._id}
                     onClick={() => onNavigate(`/admin/contacts/${c._id}`)}
-                    className="cursor-pointer hover:bg-gray-50"
+                    className="cursor-pointer hover:bg-slate-50 transition-colors group"
                   >
                     <Td>
-                      <div className="font-medium text-gray-900">
-                        {c.name || c.profileName || '(unnamed)'}
-                      </div>
-                      {c.profileName && c.profileName !== c.name && (
-                        <div className="text-[11.5px] text-gray-500 truncate">
-                          WA: {c.profileName}
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-medium text-[13px] shrink-0 border border-slate-200">
+                          {(c.name || c.profileName || '?').charAt(0).toUpperCase()}
                         </div>
-                      )}
+                        <div>
+                          <div className="font-semibold text-slate-800 group-hover:text-admin-accent transition-colors">
+                            {c.name || c.profileName || '(unnamed)'}
+                          </div>
+                          {c.profileName && c.profileName !== c.name && (
+                            <div className="text-[12px] text-slate-500 truncate max-w-[150px]">
+                              WA: {c.profileName}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </Td>
                     <Td>
-                      <span className="font-mono text-[13px]">{formatPhone(c.waId)}</span>
+                      <span className="font-mono text-[13px] text-slate-600">{formatPhone(c.waId)}</span>
                     </Td>
                     <Td>
                       <span
                         className={
-                          'inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium ' +
-                          (statusColor[c.callStatus || 'none'] || 'bg-gray-100 text-gray-700')
+                          'inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold tracking-wide ' +
+                          (statusColor[c.callStatus || 'none'] || 'bg-slate-100 text-slate-600')
                         }
                       >
                         {STATUS_LABEL[c.callStatus || 'none'] || c.callStatus || '—'}
                       </span>
                     </Td>
-                    <Td>{c.firstMessageAt ? ist(c.firstMessageAt).format('DD MMM, h:mm A') : '—'}</Td>
-                    <Td>{c.lastMessageAt ? ist(c.lastMessageAt).format('DD MMM, h:mm A') : '—'}</Td>
-                    <Td className="text-center">{(c.notes || []).length}</Td>
-                    <Td className="text-center">{(c.callStatusHistory || []).length}</Td>
-                    <Td className="text-right pr-3">
-                      <ChevronRight size={16} className="inline text-gray-400" />
+                    <Td className="text-slate-600">{c.firstMessageAt ? ist(c.firstMessageAt).format('DD MMM, h:mm A') : '—'}</Td>
+                    <Td className="text-slate-600">{c.lastMessageAt ? ist(c.lastMessageAt).format('DD MMM, h:mm A') : '—'}</Td>
+                    <Td className="text-center">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-slate-600 text-[12px] font-medium">
+                        {(c.notes || []).length}
+                      </span>
+                    </Td>
+                    <Td className="text-center">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-slate-600 text-[12px] font-medium">
+                        {(c.callStatusHistory || []).length}
+                      </span>
+                    </Td>
+                    <Td className="text-right pr-4">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-admin-accent/10 transition-colors ml-auto">
+                        <ChevronRight size={18} className="text-slate-300 group-hover:text-admin-accent transition-colors" />
+                      </div>
                     </Td>
                   </tr>
                 ))
@@ -169,18 +206,21 @@ export default function AdminDashboard({ onNavigate, onLogout }) {
   );
 }
 
-function Th({ children, ...rest }) {
-  return <th className="text-left font-medium px-3 py-2.5 whitespace-nowrap" {...rest}>{children}</th>;
+function Th({ children, className = '', ...rest }) {
+  return <th className={`text-left font-semibold px-4 py-3.5 whitespace-nowrap ${className}`} {...rest}>{children}</th>;
 }
 function Td({ children, className = '', ...rest }) {
-  return <td className={'px-3 py-2.5 align-middle whitespace-nowrap ' + className} {...rest}>{children}</td>;
+  return <td className={`px-4 py-3 align-middle whitespace-nowrap ${className}`} {...rest}>{children}</td>;
 }
-function StatCard({ label, value, accent }) {
+function StatCard({ label, value, accent, delay = '' }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-      <div className="text-[12px] uppercase tracking-wide text-gray-500 font-medium">{label}</div>
-      <div className={'mt-1.5 text-2xl font-semibold ' + (accent || '').replace('bg-', 'text-').replace('text-blue-50', '').replace('text-green-50', '').replace('text-red-50', '').replace('text-yellow-50', '')}>
-        {value}
+    <div className={`relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-premium transition-shadow duration-300 ${delay}`}>
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${accent} opacity-10 rounded-bl-full -mr-10 -mt-10`}></div>
+      <div className="relative z-10">
+        <div className="text-[12px] uppercase tracking-wider text-slate-500 font-semibold mb-2">{label}</div>
+        <div className="text-3xl font-bold text-slate-800 tracking-tight">
+          {value}
+        </div>
       </div>
     </div>
   );

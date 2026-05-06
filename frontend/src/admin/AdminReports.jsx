@@ -47,35 +47,41 @@ export default function AdminReports({ onNavigate, onLogout }) {
 
   return (
     <AdminShell active="reports" onNavigate={onNavigate} onLogout={onLogout} title="Reports">
-      <div className="max-w-2xl">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-[15px] font-semibold mb-1">Download contact report</h2>
-          <p className="text-[13px] text-gray-500 mb-5">
-            Includes name, mobile, current call status, full status-change history,
-            internal notes, and first-message timestamp for every contact.
-          </p>
+      <div className="max-w-2xl animate-fade-in-up">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-admin-accent to-admin-accentHover opacity-5 rounded-bl-full -mr-10 -mt-10"></div>
+          
+          <div className="relative z-10 mb-8">
+            <h2 className="text-[18px] font-bold text-slate-800 tracking-tight mb-2">Download contact report</h2>
+            <p className="text-[14px] text-slate-500 font-medium leading-relaxed max-w-lg">
+              Includes name, mobile, current call status, full status-change history,
+              internal notes, and first-message timestamp for every contact.
+            </p>
+          </div>
 
           {/* Range presets */}
-          <Label>Date range</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {PRESETS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPreset(p.value)}
-                className={
-                  'px-3 py-2 text-[13px] rounded-lg border transition-colors ' +
-                  (preset === p.value
-                    ? 'bg-wati-primary text-white border-wati-primary'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-wati-primary/40')
-                }
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="relative z-10 mb-6">
+            <Label>Date range</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/60 relative z-10">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setPreset(p.value)}
+                  className={
+                    'px-4 py-2 text-[13px] rounded-lg font-semibold transition-all duration-200 ' +
+                    (preset === p.value
+                      ? 'bg-white text-admin-accent shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-white/50')
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {preset === 'custom' && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-4 mb-6 relative z-10 animate-fade-in-up">
               <div>
                 <Label>From</Label>
                 <DateInput value={from} onChange={setFrom} />
@@ -88,8 +94,9 @@ export default function AdminReports({ onNavigate, onLogout }) {
           )}
 
           {/* Format */}
-          <Label>Format</Label>
-          <div className="grid grid-cols-2 gap-2 mb-5">
+          <div className="relative z-10 mb-8">
+            <Label>Format</Label>
+          <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
             <FormatBtn
               icon={FileSpreadsheet}
               label="Excel (.xlsx)"
@@ -103,9 +110,11 @@ export default function AdminReports({ onNavigate, onLogout }) {
               onClick={() => setFormat('pdf')}
             />
           </div>
+          </div>
 
           {error && (
-            <div className="text-[13px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+            <div className="text-[13px] text-red-700 bg-red-50/80 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
               {error}
             </div>
           )}
@@ -113,22 +122,27 @@ export default function AdminReports({ onNavigate, onLogout }) {
           <button
             onClick={handleDownload}
             disabled={downloading || customInvalid}
-            className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-wati-primary hover:bg-wati-primaryDark text-white font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full relative z-10 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-admin-accent to-admin-accentHover text-white font-semibold text-sm shadow-md hover:shadow-premium-hover disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 disabled:transform-none"
           >
-            <Download size={16} />
-            {downloading ? 'Preparing…' : `Download ${format === 'pdf' ? 'PDF' : 'Excel'} report`}
+            {downloading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Download size={18} />
+                <span>Download {format === 'pdf' ? 'PDF' : 'Excel'} report</span>
+              </>
+            )}
           </button>
           {customInvalid && (
-            <div className="text-[12px] text-red-600 mt-2">
+            <div className="text-[12px] text-red-500 font-medium mt-2 text-center relative z-10">
               Please pick a valid From/To range.
             </div>
           )}
         </div>
 
-        <div className="text-[12px] text-gray-500 mt-4 leading-relaxed">
+        <div className="text-[13px] text-slate-400 font-medium mt-6 leading-relaxed text-center px-4">
           The Excel file contains three sheets: a one-row-per-contact summary,
-          a Call Status Timeline (one row per change), and a Notes Timeline
-          (one row per note). PDF format produces a printable list.
+          a Call Status Timeline, and a Notes Timeline. PDF format produces a printable list.
         </div>
       </div>
     </AdminShell>
@@ -136,18 +150,18 @@ export default function AdminReports({ onNavigate, onLogout }) {
 }
 
 function Label({ children }) {
-  return <div className="text-[12px] uppercase tracking-wide font-medium text-gray-500 mb-1.5">{children}</div>;
+  return <div className="text-[12px] uppercase tracking-wider font-semibold text-slate-500 mb-2">{children}</div>;
 }
 
 function DateInput({ value, onChange }) {
   return (
-    <div className="relative">
-      <Calendar size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+    <div className="relative group">
+      <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-admin-accent transition-colors" />
       <input
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-8 pr-2.5 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-wati-primary"
+        className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 outline-none focus:bg-white focus:border-admin-accent focus:ring-4 focus:ring-admin-accent/10 transition-all text-slate-700"
       />
     </div>
   );
@@ -158,13 +172,13 @@ function FormatBtn({ icon: Icon, label, active, onClick }) {
     <button
       onClick={onClick}
       className={
-        'inline-flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm transition-colors ' +
+        'inline-flex items-center justify-center gap-2.5 py-3 rounded-xl border text-sm font-semibold transition-all duration-200 ' +
         (active
-          ? 'bg-wati-primary text-white border-wati-primary'
-          : 'bg-white text-gray-700 border-gray-200 hover:border-wati-primary/40')
+          ? 'bg-admin-accent/10 text-admin-accent border-admin-accent'
+          : 'bg-white text-slate-600 border-slate-200 hover:border-admin-accent/50 hover:bg-slate-50')
       }
     >
-      <Icon size={16} />
+      <Icon size={18} className={active ? 'text-admin-accent' : 'text-slate-400'} />
       {label}
     </button>
   );
