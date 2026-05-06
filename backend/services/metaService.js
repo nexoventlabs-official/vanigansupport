@@ -196,10 +196,14 @@ async function uploadHeaderSample({ fileUrl, fileName, fileType }) {
     return { header_handle: fileUrl };
   }
 
-  // 1) Download the file from Cloudinary (or any URL) into a buffer
+  // 1) Download the file from Cloudinary (or any URL) into a buffer.
+  // Caller-supplied fileType wins (controller has already negotiated a Meta-
+  // approved value); only fall back to the response Content-Type or octet
+  // when the caller passes nothing.
   const fileResp = await axios.get(fileUrl, { responseType: 'arraybuffer' });
   const buffer = Buffer.from(fileResp.data);
-  const mime = fileType || fileResp.headers['content-type'] || 'application/octet-stream';
+  const respMime = (fileResp.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+  const mime = fileType || respMime || 'application/octet-stream';
 
   // 2) Create upload session - uses App Access Token (app_id|app_secret)
   const appAccessToken = `${appId}|${appSecret}`;

@@ -2,6 +2,43 @@ const Template = require('../models/Template');
 const meta = require('../services/metaService');
 const { emit } = require('../services/socketService');
 const { deleteByUrl } = require('../config/cloudinary');
+const axios = require('axios');
+
+// Meta WhatsApp template HEADER format -> list of accepted MIME types.
+// We pick the *first* match between this list and the actual content-type
+// served by Cloudinary, falling back to the first entry as a safe default.
+// (See https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)
+const HEADER_MIME_BY_FORMAT = {
+  IMAGE: ['image/jpeg', 'image/png'],
+  VIDEO: ['video/mp4', 'video/3gpp'],
+  DOCUMENT: ['application/pdf'],
+};
+
+// Map MIME -> filename extension that Meta will accept. Used when we have
+// to rebuild the filename so the extension matches `file_type`.
+const EXT_FOR_MIME = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'video/mp4': 'mp4',
+  'video/3gpp': '3gp',
+  'application/pdf': 'pdf',
+};
+
+// URL-only fallback for mime detection when HEAD requests are blocked or
+// the server does not advertise a useful Content-Type.
+function guessMimeFromUrl(url, format) {
+  const lower = (url.split('?')[0] || '').toLowerCase();
+  if (format === 'IMAGE') {
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  } else if (format === 'VIDEO') {
+    if (lower.endsWith('.mp4')) return 'video/mp4';
+    if (lower.endsWith('.3gp')) return 'video/3gpp';
+  } else if (format === 'DOCUMENT') {
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+  }
+  return null;
+}
 
 exports.listTemplates = async (req, res) => {
   const templates = await Template.find().sort({ updatedAt: -1 });
@@ -141,16 +178,40 @@ exports.submitTemplate = async (req, res) => {
     if (header && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(header.format)) {
       const mediaUrl = doc.header?.mediaUrl || header.example?.header_handle?.[0];
       if (!mediaUrl) return res.status(400).json({ error: 'Header media URL missing' });
+      // Meta returns expiring whatsapp.net signed URLs that we can't re-fetch.
+      // If a previous sync stored one of those (instead of the original
+      // Cloudinary URL), refuse early with a clear message.
+      if (!/^https?:\/\//i.test(mediaUrl) || /whatsapp\.net|lookaside\.fbsbx\.com/i.test(mediaUrl)) {
+        return res.status(400).json({
+          error: 'Header media URL is not re-uploadable. Re-upload the image/video/PDF for this template, then submit again.',
+        });
+      }
 
-      // Guess a filename & mime from the URL.
-      // Meta requires fileName to match /^[^\/<@%]+$/ - so we URL-decode (Cloudinary
-      // %-encodes spaces, commas, etc) and then replace any remaining forbidden chars.
+      // Defend against the most common reason Meta's resumable upload rejects
+      // a header sample: a mismatch between the declared `file_type` / file
+      // extension and the actual bytes Cloudinary serves (e.g. user uploaded
+      // a PNG but we hard-coded image/jpeg).
+      // Strategy:
+      //   1. HEAD-fetch the Cloudinary URL to read the real Content-Type.
+      //   2. Fall back to the URL extension, then to a sensible default.
+      //   3. Pin the filename to a safe extension that matches the mime.
+      const allowed = HEADER_MIME_BY_FORMAT[header.format];
+      let detectedMime = null;
+      try {
+        const head = await axios.head(mediaUrl, { timeout: 10000 });
+        detectedMime = (head.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      } catch (_) { /* best-effort; falls back below */ }
+      // Pick a mime Meta accepts for this header format.
+      let fileType = detectedMime && allowed.includes(detectedMime)
+        ? detectedMime
+        : guessMimeFromUrl(mediaUrl, header.format) || allowed[0];
+
+      // Build a Meta-safe filename. Meta forbids `/ < @ %` in filenames AND
+      // expects the extension to match file_type.
       let rawName = (mediaUrl.split('/').pop() || 'header').split('?')[0];
       try { rawName = decodeURIComponent(rawName); } catch { /* keep raw */ }
-      const fileName = rawName.replace(/[\/<@%]/g, '_').trim() || 'header';
-      const fileType = header.format === 'IMAGE' ? 'image/jpeg'
-        : header.format === 'VIDEO' ? 'video/mp4'
-        : 'application/pdf';
+      const safeStem = rawName.replace(/[\/<@%\s]/g, '_').replace(/\.[^.]+$/, '').trim() || 'header';
+      const fileName = `${safeStem}.${EXT_FOR_MIME[fileType] || EXT_FOR_MIME[allowed[0]]}`;
 
       const { header_handle } = await meta.uploadHeaderSample({
         fileUrl: mediaUrl,
@@ -193,10 +254,23 @@ exports.submitTemplate = async (req, res) => {
     emit('template:update', doc);
     res.json(doc);
   } catch (e) {
-    console.error('[submitTemplate]', e.response?.data || e.message);
-    const meta_err = e.response?.data?.error?.message;
+    // Print URL+status alongside the body so Render logs make the failure
+    // point obvious (header upload vs createTemplate vs other).
+    const cfg = e.config || {};
+    console.error('[submitTemplate]', {
+      url: cfg.url,
+      method: cfg.method,
+      status: e.response?.status,
+      data: e.response?.data,
+      message: e.message,
+    });
+    const metaErr = e.response?.data?.error;
+    const friendly = metaErr?.error_user_msg
+      || metaErr?.message
+      || e.message
+      || 'Failed to submit template';
     res.status(500).json({
-      error: meta_err || 'Failed to submit template',
+      error: friendly,
       details: e.response?.data || e.message,
     });
   }
