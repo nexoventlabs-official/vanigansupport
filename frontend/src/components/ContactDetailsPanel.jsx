@@ -55,9 +55,9 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
   const [, tick] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
 
-  // Tick every minute so the "started X ago" relative time stays fresh.
+  // Tick every second so the countdown stays fresh.
   useEffect(() => {
-    const t = setInterval(() => tick((v) => v + 1), 60_000);
+    const t = setInterval(() => tick((v) => v + 1), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -95,10 +95,7 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
   }, [contact?._id]);
 
   const country = useMemo(() => resolveCountry(contact?.waId), [contact?.waId]);
-  const ws = useMemo(
-    () => windowState(contact?.lastCustomerMessageAt, contact?.source),
-    [contact?.lastCustomerMessageAt, contact?.source]
-  );
+  const ws = windowState(contact?.lastCustomerMessageAt, contact?.source);
 
   if (!contact) return null;
 
