@@ -27,6 +27,9 @@ export default function MessageList({ messages, unreadData, onReply, onDelete, o
       );
     }
 
+    const idx = messages.indexOf(m);
+    const isNearBottom = idx >= messages.length - 3; // The last 3 messages open upwards
+
     items.push(
       <MessageBubble
         key={m._id}
@@ -35,6 +38,7 @@ export default function MessageList({ messages, unreadData, onReply, onDelete, o
         onReply={onReply}
         onDelete={onDelete}
         onReact={onReact}
+        isNearBottom={isNearBottom}
       />
     );
   }

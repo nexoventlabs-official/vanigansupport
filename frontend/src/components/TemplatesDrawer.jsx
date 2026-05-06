@@ -14,6 +14,20 @@ const STATUS_BADGE = {
   DISABLED: { icon: <XCircle size={14} />, cls: 'bg-red-100 text-red-700 border-red-300' },
 };
 
+function TemplateSkeleton() {
+  return (
+    <div className="border border-gray-200 rounded-lg bg-white p-3 animate-pulse flex items-center gap-3">
+      <div className="w-4 h-4 rounded bg-gray-200 shrink-0"></div>
+      <div className="flex-1">
+        <div className="h-3.5 bg-gray-200 rounded w-1/3 mb-1.5"></div>
+        <div className="h-2 bg-gray-200 rounded w-1/4"></div>
+      </div>
+      <div className="w-[80px] h-5 rounded bg-gray-200 shrink-0"></div>
+      <div className="w-6 h-6 rounded bg-gray-200 shrink-0"></div>
+    </div>
+  );
+}
+
 // Phone/WhatsApp style preview of a template (mirrors how Meta Business Manager
 // previews a template). Used inside each template card in the drawer.
 function TemplatePreview({ t }) {
@@ -194,26 +208,33 @@ export default function TemplatesDrawer({ onClose, onPick }) {
         className="w-full max-w-lg bg-white h-full flex flex-col shadow-2xl relative"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="px-4 py-3 bg-wati-header text-white flex items-center justify-between">
-          <div className="font-semibold">Templates</div>
-          <div className="flex items-center gap-1">
+        <div className="px-4 py-3 bg-wati-panel text-wati-text flex items-center justify-between border-b border-[#d1d7db]">
+          <div className="font-semibold text-lg">Templates</div>
+          <div className="flex items-center gap-1 text-wati-muted">
             <button onClick={sync} disabled={loading} title="Sync from Meta"
-              className="p-2 rounded hover:bg-white/10">
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              className="p-2 rounded-full hover:bg-black/5 transition-colors">
+              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
             <button onClick={() => setEditing(true)} title="New template"
-              className="p-2 rounded hover:bg-white/10"><Plus size={18} /></button>
-            <button onClick={onClose} className="p-2 rounded hover:bg-white/10"><X size={18} /></button>
+              className="p-2 rounded-full hover:bg-black/5 transition-colors"><Plus size={20} /></button>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors"><X size={20} /></button>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto thin-scroll p-3 space-y-3">
-          {list.length === 0 && (
+          {list.length === 0 && loading ? (
+            <>
+              <TemplateSkeleton />
+              <TemplateSkeleton />
+              <TemplateSkeleton />
+              <TemplateSkeleton />
+            </>
+          ) : list.length === 0 ? (
             <div className="text-center text-wati-muted text-sm py-8">
               No templates yet. Click <span className="inline-flex items-center"><Plus size={14}/></span> to create one.
             </div>
-          )}
-          {list.map(t => {
+          ) : (
+            list.map(t => {
             const badge = STATUS_BADGE[t.status] || STATUS_BADGE.DRAFT;
             const isExpanded = expandedId === t._id;
             const isPicked = pickedId === t._id;
@@ -281,7 +302,7 @@ export default function TemplatesDrawer({ onClose, onPick }) {
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
 
         {/* Floating Send button - appears when a template is picked via checkbox */}

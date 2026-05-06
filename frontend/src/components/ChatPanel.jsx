@@ -210,7 +210,22 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
 
   const handleReact = useCallback(async (m, emoji) => {
     if (!contact) return;
-    await Messages.sendReaction(contact._id, { wamid: m.wamid, emoji });
+    
+    // Optimistic UI update for instant feedback
+    setMessages(prev => prev.map(msg => {
+      if (msg._id === m._id) {
+        const newReactions = (msg.reactions || []).filter(r => r.from !== 'agent');
+        if (emoji) newReactions.push({ from: 'agent', emoji });
+        return { ...msg, reactions: newReactions };
+      }
+      return msg;
+    }));
+
+    try {
+      await Messages.sendReaction(contact._id, { wamid: m.wamid, emoji });
+    } catch (e) {
+      showToast('error', 'Reaction failed: ' + extractError(e));
+    }
   }, [contact]);
 
   const handleDelete = useCallback(async (m) => {

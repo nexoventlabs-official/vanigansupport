@@ -62,9 +62,25 @@ function ReplyQuote({ wamid, allMessages }) {
   const preview = oneLine.length > 80 ? oneLine.slice(0, 80) + '…' : oneLine;
   const isCustomer = original.direction === 'inbound';
 
+  const handleScroll = () => {
+    const el = document.getElementById(`msg-${wamid}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const bubble = el.querySelector('.shadow-bubble');
+      if (bubble) {
+        bubble.classList.add('ring-2', 'ring-wati-primary', 'transition-all', 'duration-300');
+        setTimeout(() => {
+          bubble.classList.remove('ring-2', 'ring-wati-primary');
+        }, 1500);
+      }
+    }
+  };
+
   return (
-    <div className={clsx(
-      "mb-1.5 rounded-md overflow-hidden border-l-[3px] max-w-sm",
+    <div 
+      onClick={handleScroll}
+      className={clsx(
+      "mb-1.5 rounded-md overflow-hidden border-l-[3px] max-w-sm cursor-pointer hover:opacity-90 transition-opacity",
       isCustomer ? "bg-black/5 border-[#128C7E]" : "bg-black/5 border-wati-primary"
     )}>
       <div className="px-2.5 py-1.5 text-xs">
@@ -276,16 +292,19 @@ function Media({ m }) {
   return null;
 }
 
-export default function MessageBubble({ message: m, allMessages, onReply, onDelete, onReact }) {
+export default function MessageBubble({ message: m, allMessages, onReply, onDelete, onReact, isNearBottom }) {
   const out = m.direction === 'outbound';
   const [menuOpen, setMenuOpen] = useState(false);
   const [reactOpen, setReactOpen] = useState(false);
   const menuRef = useRef(null);
+  const reactRef = useRef(null);
 
   useEffect(() => {
     const onDoc = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false);
+      }
+      if (reactRef.current && !reactRef.current.contains(e.target)) {
         setReactOpen(false);
       }
     };
@@ -303,15 +322,41 @@ export default function MessageBubble({ message: m, allMessages, onReply, onDele
 
   return (
     <div
+      id={m.wamid ? `msg-${m.wamid}` : undefined}
       className={clsx(
-        'flex msg-enter',
+        'flex msg-enter group relative items-center',
         out ? 'justify-end' : 'justify-start',
         hasReactions && 'mb-4'
       )}
     >
+      {/* Floating Reaction Picker */}
+      {reactOpen && (
+        <div ref={reactRef} className={clsx(
+          "absolute z-20 -top-8 bg-white rounded-full shadow-lg border border-black/5 px-2 py-1.5 flex gap-1 items-center animate-in fade-in zoom-in-95 duration-150",
+          out ? "right-8" : "left-8"
+        )}>
+          {QUICK_REACTIONS.map(emj => (
+            <button
+              key={emj}
+              onClick={() => { onReact(m, emj); setReactOpen(false); }}
+              className="text-xl hover:scale-125 transition px-1"
+            >
+              {emj}
+            </button>
+          ))}
+          <button
+            onClick={() => { onReact(m, ''); setReactOpen(false); }}
+            className="text-[10px] text-wati-muted px-2 hover:text-gray-800 border-l border-gray-100 ml-1"
+            title="Clear reaction"
+          >
+            ✖
+          </button>
+        </div>
+      )}
+
       <div
         className={clsx(
-          'relative group max-w-[75%] rounded-lg px-2 pt-1.5 pb-1 shadow-bubble',
+          'relative max-w-[75%] rounded-lg px-2 pt-1.5 pb-1 shadow-bubble',
           out ? 'bg-wati-bubbleOut' : 'bg-wati-bubbleIn',
         )}
         onContextMenu={onContextMenu}
@@ -329,29 +374,18 @@ export default function MessageBubble({ message: m, allMessages, onReply, onDele
         </button>
 
         {menuOpen && (
-          <div ref={menuRef} className="absolute top-6 right-1 z-10 bg-white rounded-lg shadow-lg border py-1 text-sm min-w-[150px]">
+          <div ref={menuRef} className={clsx(
+            "absolute z-10 bg-white rounded-lg shadow-lg border py-1 text-sm min-w-[150px]",
+            out ? "right-1" : "left-[calc(100%-2rem)]",
+            isNearBottom ? "top-1 -translate-y-full" : "top-6"
+          )}>
             <button
-              onClick={() => { setReactOpen(v => !v); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => { setReactOpen(v => !v); setMenuOpen(false); }}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100"
             >
               <Smile size={16} /> React
             </button>
-            {reactOpen && (
-              <div className="flex gap-1 px-2 py-1 border-t border-b">
-                {QUICK_REACTIONS.map(emj => (
-                  <button
-                    key={emj}
-                    onClick={() => { onReact(m, emj); setMenuOpen(false); setReactOpen(false); }}
-                    className="text-lg hover:scale-125 transition"
-                  >{emj}</button>
-                ))}
-                <button
-                  onClick={() => { onReact(m, ''); setMenuOpen(false); setReactOpen(false); }}
-                  className="text-xs text-wati-muted px-1"
-                  title="Clear reaction"
-                >✖</button>
-              </div>
-            )}
             <button
               onClick={() => { onReply(m); setMenuOpen(false); }}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100"
@@ -455,6 +489,20 @@ export default function MessageBubble({ message: m, allMessages, onReply, onDele
           </div>
         )}
       </div>
+      
+      {/* Quick React Button (Inbound) - shows on right of bubble */}
+      {!out && !m.deleted && (
+        <div className="opacity-0 group-hover:opacity-100 transition px-2">
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => { setReactOpen(v => !v); setMenuOpen(false); }}
+            className="p-1.5 rounded-full text-wati-muted hover:bg-black/5 hover:text-gray-700 transition-colors"
+            title="React"
+          >
+            <Smile size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
