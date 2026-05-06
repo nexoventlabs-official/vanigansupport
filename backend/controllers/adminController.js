@@ -209,6 +209,9 @@ async function streamExcel(res, rows, range, filename) {
   wb.creator = 'Vanigan Support';
   wb.created = new Date();
 
+  // "— None —" looks awkward in a spreadsheet; show "N/A" instead.
+  const cellStatus = (label) => (!label || label === '— None —' ? 'N/A' : label);
+
   // Sheet 1: summary, one row per contact
   const ws = wb.addWorksheet('Contacts');
   ws.columns = [
@@ -218,7 +221,6 @@ async function streamExcel(res, rows, range, filename) {
     { header: 'Source',               key: 'source',               width: 16 },
     { header: 'Current Call Status',  key: 'callStatus',           width: 22 },
     { header: 'First Message At',     key: 'firstMessageAt',       width: 24 },
-    { header: 'First Message',        key: 'firstMessagePreview',  width: 40 },
     { header: 'Last Message At',      key: 'lastMessageAt',        width: 24 },
     { header: 'Call Status Changes',  key: 'callStatusHistoryStr', width: 50 },
     { header: 'Notes',                key: 'notesStr',             width: 50 },
@@ -233,16 +235,17 @@ async function streamExcel(res, rows, range, filename) {
       whatsappName: r.whatsappName,
       mobile: r.mobile,
       source: r.source,
-      callStatus: r.callStatus,
+      callStatus: cellStatus(r.callStatus),
       firstMessageAt: fmt(r.firstMessageAt),
-      firstMessagePreview: r.firstMessagePreview,
       lastMessageAt: fmt(r.lastMessageAt),
+      // Use "\n" so that with wrapText each entry renders on its own line
+      // inside the cell, prefixed with a bullet for readability.
       callStatusHistoryStr: r.callStatusHistory
-        .map((h) => `${h.status} @ ${fmt(h.at)}`)
-        .join(' | '),
+        .map((h) => `• ${cellStatus(h.status)} @ ${fmt(h.at)}`)
+        .join('\n'),
       notesStr: r.notes
-        .map((n) => `[${fmt(n.at)}] ${n.text}`)
-        .join(' | '),
+        .map((n) => `• [${fmt(n.at)}] ${n.text}`)
+        .join('\n'),
     });
   }
   ws.eachRow({ includeEmpty: false }, (row) => {
@@ -261,7 +264,7 @@ async function streamExcel(res, rows, range, filename) {
   tl.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF22A06B' } };
   for (const r of rows) {
     for (const h of r.callStatusHistory) {
-      tl.addRow({ name: r.name || r.mobile, mobile: r.mobile, status: h.status, at: fmt(h.at) });
+      tl.addRow({ name: r.name || r.mobile, mobile: r.mobile, status: cellStatus(h.status), at: fmt(h.at) });
     }
   }
 
