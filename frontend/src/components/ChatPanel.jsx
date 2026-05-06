@@ -6,7 +6,7 @@ import MessageInput from './MessageInput.jsx';
 import WindowTimer from './WindowTimer.jsx';
 import { CALL_STATUSES } from '../utils/callStatus';
 import { windowState } from '../utils/time';
-import { MessageCircle, StickyNote, X, AlertCircle, Trash2, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { MessageCircle, StickyNote, X, AlertCircle, Trash2, PanelRightOpen, PanelRightClose, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import Avatar from './Avatar.jsx';
 import NotesDialog from './NotesDialog.jsx';
@@ -38,6 +38,8 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
   // Notes history modal (opened from the sticky-note icon in the chat header).
   const [notesOpen, setNotesOpen] = useState(false);
   const [toast, setToast] = useState(null); // { type, msg }
+  const [loading, setLoading] = useState(false);
+  const [unreadData, setUnreadData] = useState(null);
   const listRef = useRef(null);
 
   function showToast(type, msg) {
@@ -60,9 +62,35 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
 
   // Load messages when contact changes
   useEffect(() => {
-    if (!contact?._id) { setMessages([]); return; }
+    if (!contact?._id) { setMessages([]); setUnreadData(null); return; }
+    
+    const unreads = contact.unreadCount || 0;
     setReplyTo(null);
-    Messages.list(contact._id).then(setMessages);
+    setMessages([]); // Clear old messages immediately for fast UX
+    setUnreadData(null);
+    setLoading(true);
+    Messages.list(contact._id).then(msgs => {
+      setMessages(msgs);
+      
+      if (unreads > 0) {
+        let inboundCount = 0;
+        let dividerMsgId = null;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].direction === 'inbound') {
+            inboundCount++;
+            if (inboundCount === unreads) {
+              dividerMsgId = msgs[i]._id;
+              break;
+            }
+          }
+        }
+        if (dividerMsgId) {
+          setUnreadData({ count: unreads, msgId: dividerMsgId });
+        }
+      }
+      
+      setLoading(false);
+    }).catch(() => setLoading(false));
     // Optimistically zero the badge in the parent list so the user never sees
     // an "1" / "2" pip on the chat they're actively viewing - even if the
     // server's contact:upsert lags behind the markRead HTTP call.
@@ -218,11 +246,17 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
 
   if (!contact) {
     return (
-      <main className="flex-1 flex items-center justify-center chat-bg">
-        <div className="text-center text-wati-muted">
-          <MessageCircle size={64} className="mx-auto mb-4 opacity-40" />
-          <div className="text-lg">Select a contact to start chatting</div>
-          <div className="text-sm mt-1">Inbound WhatsApp messages appear here in real time</div>
+      <main className="flex-1 flex flex-col items-center justify-center chat-bg pb-20">
+        <div className="text-center text-wati-muted max-w-md">
+          <img 
+            src="/image.png" 
+            alt="Welcome" 
+            className="w-72 max-w-[80%] mx-auto mb-8 opacity-90 mix-blend-multiply"
+          />
+          <div className="text-2xl font-light text-[#41525d]">Select a contact to start chatting</div>
+          <div className="text-[14px] mt-4 text-[#8696a0]">
+            Inbound WhatsApp messages appear here in real time. Click on a chat from the sidebar to view the conversation.
+          </div>
         </div>
       </main>
     );
@@ -243,7 +277,7 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
         </div>
       )}
       {/* Header */}
-      <div className="bg-[#f0f2f5] px-4 py-2 flex items-center gap-3 border-b border-gray-200">
+      <div className="bg-wati-panel px-4 py-2 flex items-center gap-3 border-b border-[#d1d7db]">
         <Avatar name={contact.name || contact.profileName || contact.waId} url={contact.profilePicUrl} size={40} />
         <button
           onClick={onToggleDetails}
@@ -319,12 +353,21 @@ export default function ChatPanel({ contact, onContactUpdate, onOpenTemplates, d
 
       {/* Messages */}
       <div ref={listRef} className="flex-1 overflow-y-auto thin-scroll chat-bg px-3 sm:px-6 py-4">
-        <MessageList
-          messages={messages}
-          onReply={setReplyTo}
-          onDelete={handleDelete}
-          onReact={handleReact}
-        />
+        {loading ? (
+          <div className="flex justify-center py-6">
+             <div className="bg-white/80 shadow-sm rounded-full p-2 text-wati-primary">
+               <Loader2 className="animate-spin" size={20} />
+             </div>
+          </div>
+        ) : (
+          <MessageList
+            messages={messages}
+            unreadData={unreadData}
+            onReply={setReplyTo}
+            onDelete={handleDelete}
+            onReact={handleReact}
+          />
+        )}
       </div>
 
       {/* Input */}

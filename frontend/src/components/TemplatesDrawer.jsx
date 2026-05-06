@@ -27,7 +27,7 @@ function TemplatePreview({ t }) {
   }
 
   return (
-    <div className="mt-2 rounded-lg p-2.5 bg-[#efeae2] border border-black/5">
+    <div className="mt-2 rounded-lg p-2.5 bg-wati-bg border border-black/5">
       <div className="rounded-md overflow-hidden bg-white shadow-sm max-w-full">
         {/* Header */}
         {header.type === 'IMAGE' && header.mediaUrl && (

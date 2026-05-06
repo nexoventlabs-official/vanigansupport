@@ -190,7 +190,7 @@ export default function MessageInput({
 
   if (disabled) {
     return (
-      <div className="px-4 py-3 bg-[#f0f2f5] border-t border-gray-200 flex items-center justify-between gap-3">
+      <div className="px-4 py-3 bg-wati-panel border-t border-[#d1d7db] flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-red-700">
           <Lock size={16} />
           24-hour conversation window is closed. You can only send an approved template.
@@ -206,7 +206,7 @@ export default function MessageInput({
   }
 
   return (
-    <div className="bg-[#f0f2f5] border-t border-gray-200">
+    <div className="bg-wati-panel border-t border-[#d1d7db]">
       {/* Reply preview */}
       {replyTo && (
         <div className="px-4 py-2 bg-white/70 border-b flex items-start gap-2">

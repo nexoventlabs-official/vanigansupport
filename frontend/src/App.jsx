@@ -20,6 +20,7 @@ const DETAILS_OPEN_KEY = 'wati:detailsPanelOpen';
 
 export default function App() {
   const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
   // Restore previously opened chat across page refreshes.
   const [selectedId, setSelectedId] = useState(() => {
     try { return localStorage.getItem(SELECTED_CONTACT_KEY) || null; } catch { return null; }
@@ -50,12 +51,17 @@ export default function App() {
   }, [detailsOpen]);
 
   const load = useCallback(async () => {
+    setLoadingContacts(true);
     const params = {};
     if (query) params.q = query;
     if (range.from) params.from = range.from;
     if (range.to) params.to = range.to;
-    const list = await Contacts.list(params);
-    setContacts(list);
+    try {
+      const list = await Contacts.list(params);
+      setContacts(list);
+    } finally {
+      setLoadingContacts(false);
+    }
   }, [query, range.from, range.to]);
 
   useEffect(() => { load(); }, [load]);
@@ -163,6 +169,7 @@ export default function App() {
         notifyEnabled={notifyEnabled && notifPerm === 'granted'}
         notifyPerm={notifPerm}
         onToggleNotifications={toggleNotifications}
+        loading={loadingContacts}
       />
       <ChatPanel
         contact={selected}

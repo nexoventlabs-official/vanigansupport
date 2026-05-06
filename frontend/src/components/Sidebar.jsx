@@ -10,6 +10,7 @@ export default function Sidebar({
   contacts, selectedId, onSelect, query, setQuery, range, setRange,
   onOpenTemplates, onAddContact,
   notifyEnabled = false, notifyPerm = 'default', onToggleNotifications,
+  loading = false,
 }) {
   const [showFilter, setShowFilter] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -37,9 +38,9 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-[360px] min-w-[300px] max-w-[420px] bg-wati-sidebar border-r border-gray-200 flex flex-col">
+    <aside className="w-[24rem] min-w-[20rem] max-w-[28rem] bg-wati-sidebar border-r border-gray-200 flex flex-col">
       {/* Header */}
-      <div className="bg-[#f0f2f5] px-4 py-3 flex items-center justify-between">
+      <div className="bg-wati-panel px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <img
             src="/logo.png"
@@ -71,21 +72,6 @@ export default function Sidebar({
               {notifyEnabled ? <Bell size={20} /> : <BellOff size={20} />}
             </button>
           )}
-          <button
-            onClick={onOpenTemplates}
-            title="Templates"
-            className="p-2 rounded-full hover:bg-gray-200 text-wati-muted"
-          >
-            <FileText size={20} />
-          </button>
-          <button
-            ref={addBtnRef}
-            onClick={() => setShowAdd(v => !v)}
-            title="Add contact"
-            className="p-2 rounded-full hover:bg-gray-200 text-wati-muted"
-          >
-            <Plus size={20} />
-          </button>
         </div>
       </div>
 
@@ -149,18 +135,30 @@ export default function Sidebar({
 
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto thin-scroll">
-        {contacts.length === 0 && (
+        {loading ? (
+          Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-3 border-b border-[#f2f2f2]">
+              <div className="w-[48px] h-[48px] rounded-full bg-black/5 animate-pulse shrink-0" />
+              <div className="flex-1 flex flex-col gap-2.5 mt-0.5">
+                <div className="flex justify-between items-center">
+                  <div className="h-3.5 bg-black/5 rounded w-[60%] animate-pulse" />
+                  <div className="h-2.5 bg-black/5 rounded w-10 animate-pulse" />
+                </div>
+                <div className="h-2.5 bg-black/5 rounded w-[80%] animate-pulse" />
+              </div>
+            </div>
+          ))
+        ) : contacts.length === 0 ? (
           <div className="p-6 text-center text-sm text-wati-muted">
             No contacts yet.<br />Incoming WhatsApp messages or the + button will add them.
           </div>
-        )}
-        {contacts.map(c => (
+        ) : contacts.map(c => (
           <button
             key={c._id}
             onClick={() => onSelect(c._id)}
             className={clsx(
-              'w-full flex items-center gap-3 px-3 py-3 text-left border-b border-gray-100 hover:bg-gray-50',
-              selectedId === c._id && 'bg-gray-100'
+              'w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-[#f5f6f6] transition-colors',
+              selectedId === c._id ? 'bg-wati-panel hover:bg-wati-panel' : 'border-b border-[#f2f2f2]'
             )}
           >
             <Avatar name={c.name || c.profileName || c.waId} url={c.profilePicUrl} />

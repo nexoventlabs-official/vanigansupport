@@ -2,7 +2,7 @@ import React from 'react';
 import MessageBubble from './MessageBubble.jsx';
 import { formatDaySeparator, sameDay } from '../utils/time';
 
-export default function MessageList({ messages, onReply, onDelete, onReact }) {
+export default function MessageList({ messages, unreadData, onReply, onDelete, onReact }) {
   const items = [];
   let lastDate = null;
   for (const m of messages) {
@@ -16,6 +16,17 @@ export default function MessageList({ messages, onReply, onDelete, onReact }) {
       );
       lastDate = m.createdAt;
     }
+    
+    if (unreadData && m._id === unreadData.msgId) {
+      items.push(
+        <div key="unread-divider" className="flex justify-center my-3">
+          <span className="text-[11px] bg-white/90 px-3 py-1 rounded-lg shadow-sm text-wati-primaryDark font-semibold uppercase tracking-wide border border-black/5">
+            {unreadData.count} Unread Message{unreadData.count > 1 ? 's' : ''}
+          </span>
+        </div>
+      );
+    }
+
     items.push(
       <MessageBubble
         key={m._id}

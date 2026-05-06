@@ -22,15 +22,15 @@ import CountryFlag from './CountryFlag.jsx';
 import Avatar from './Avatar.jsx';
 import NotesDialog from './NotesDialog.jsx';
 
-function Field({ icon: Icon, label, children }) {
+function Field({ icon: Icon, label, children, border = true }) {
   if (!children) return null;
   return (
-    <div className="px-4 py-3 border-b border-gray-100">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-wati-muted">
-        {Icon && <Icon size={12} />}
-        <span>{label}</span>
+    <div className={clsx("py-3 px-5 flex gap-4", border && "border-b border-gray-100")}>
+      {Icon && <div className="mt-0.5 text-wati-muted/70"><Icon size={20} strokeWidth={1.5} /></div>}
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] text-wati-text break-words leading-tight">{children}</div>
+        <div className="text-[13px] text-wati-muted mt-1">{label}</div>
       </div>
-      <div className="mt-1 text-sm text-wati-text break-words">{children}</div>
     </div>
   );
 }
@@ -128,190 +128,172 @@ export default function ContactDetailsPanel({ contact, onClose, onContactUpdate 
   const latestNote = noteEntries[0] || null;
 
   return (
-    <aside className="w-[320px] shrink-0 bg-white border-l border-gray-200 flex flex-col h-full">
+    <aside className="w-[22rem] shrink-0 bg-[#f0f2f5] border-l border-gray-200 flex flex-col h-full z-10">
       {/* Header / cover banner */}
-      <div
-        className="relative h-32 bg-cover bg-center"
-        style={{ backgroundImage: 'url(/banner.png)' }}
-      >
-        {/* subtle dark gradient at the bottom so the avatar reads cleanly
-            against any banner artwork */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/10 pointer-events-none" />
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm hover:bg-white text-wati-text shadow-sm"
-            title="Hide details"
-          >
-            <X size={16} />
-          </button>
-        )}
-        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
+      <div className="bg-white shadow-sm pb-5 relative shrink-0">
+        <div
+          className="relative h-28 bg-cover bg-center"
+          style={{ backgroundImage: 'url(/banner.png)' }}
+        >
+          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm"
+              title="Close details"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col items-center -mt-12 relative z-10 px-4">
           <Avatar
             name={displayName}
             url={contact.profilePicUrl}
             size={96}
-            className="ring-4 ring-white shadow-md"
+            className="ring-4 ring-white shadow-sm"
           />
-        </div>
-      </div>
-
-      {/* Identity */}
-      <div className="pt-14 px-4 pb-4 text-center border-b border-gray-100">
-        <div className="text-lg font-semibold text-wati-text inline-flex items-center gap-2">
-          <span className="truncate">{displayName}</span>
-          {country.iso2 && (
-            <CountryFlag
-              iso2={country.iso2}
-              emoji={country.flag}
-              title={country.name}
-              size={18}
-            />
-          )}
-        </div>
-        <div className="text-xs text-wati-muted mt-0.5">{country.name}</div>
-      </div>
-
-      {/* Scrollable details */}
-      <div className="flex-1 overflow-y-auto thin-scroll">
-        <Field icon={Phone} label="Phone">
-          <a
-            href={`tel:+${String(contact.waId).replace(/\D/g, '')}`}
-            className="text-wati-primary hover:underline"
-          >
-            {formatPhone(contact.waId)}
-          </a>
-        </Field>
-
-        {contact.profileName && contact.profileName !== contact.name && (
-          <Field icon={Tag} label="WhatsApp profile name">
-            {contact.profileName}
-          </Field>
-        )}
-
-        <Field icon={Globe2} label="Came via">
-          <span className="inline-flex items-center gap-2">
-            <ChannelIcon source={contact.source} size={22} />
-            <span>{getSourceMeta(contact.source).label}</span>
-            <span className="text-wati-muted text-xs">
-              · {ws.totalHours}h window
+          <div className="mt-3 text-[19px] font-medium text-wati-text flex items-center gap-2 text-center break-words max-w-full">
+            <span className="truncate">{displayName}</span>
+          </div>
+          <div className="text-[14px] text-wati-muted mt-1 flex items-center gap-1.5">
+            <a href={`tel:+${String(contact.waId).replace(/\D/g, '')}`} className="hover:underline">
+              {formatPhone(contact.waId)}
+            </a>
+            <span className="text-gray-300">•</span>
+            <span className="flex items-center gap-1">
+              {country.iso2 && <CountryFlag iso2={country.iso2} emoji={country.flag} size={14} />}
+              {country.name}
             </span>
-          </span>
-        </Field>
+          </div>
+        </div>
+      </div>
 
-        <Field icon={Calendar} label="Customer started chat">
-          {startedAt ? (
-            <div>
-              <div className="font-medium">{startedAt.format('DD MMM YYYY, h:mm A')}</div>
-              <div className="text-xs text-wati-muted">{startedAt.fromNow()}</div>
-            </div>
-          ) : (
-            <span className="text-wati-muted text-xs">No messages yet</span>
+      {/* Scrollable details grouped in cards */}
+      <div className="flex-1 overflow-y-auto thin-scroll pb-6">
+        
+        {/* Card 1: Chat Meta */}
+        <div className="bg-white shadow-sm mt-2 py-1">
+          {contact.profileName && contact.profileName !== contact.name && (
+            <Field icon={Tag} label="WhatsApp profile name">
+              {contact.profileName}
+            </Field>
           )}
-        </Field>
-
-        <Field icon={Clock} label={`${ws.totalHours}h customer-service window`}>
-          {ws.expired ? (
-            <span className="text-red-600">Window closed — only template messages allowed</span>
-          ) : !contact.lastCustomerMessageAt ? (
-            <span className="text-wati-muted">No customer message yet</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span
-                className={clsx(
-                  'font-mono font-semibold px-2 py-0.5 rounded border text-xs',
-                  ws.danger
-                    ? 'bg-red-50 text-red-700 border-red-200 animate-pulse'
-                    : 'bg-green-50 text-green-700 border-green-200'
-                )}
-              >
-                {formatCountdown(ws.remainingMs)}
-              </span>
-              <span className="text-xs text-wati-muted">remaining</span>
-            </div>
-          )}
-        </Field>
-
-        <Field icon={MessageCircle} label="Call status">
-          {callStatusLabel}
-        </Field>
-
-        {/* Internal notes - clickable card opens the full history dialog. We
-            always render this section (even when empty) so the agent can add
-            the first note without hunting for the chat-header button. */}
-        <div className="px-4 py-3 border-b border-gray-100">
-          <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-wati-muted">
-            <div className="flex items-center gap-2">
-              <StickyNote size={12} />
-              <span>Internal notes</span>
-              {noteEntries.length > 0 && (
-                <span className="text-wati-muted normal-case tracking-normal">
-                  ({noteEntries.length})
+          <Field icon={Calendar} label="Customer started chat">
+            {startedAt ? (
+              <div>
+                <div className="font-medium">{startedAt.format('DD MMM YYYY, h:mm A')}</div>
+                <div className="text-[12px] text-wati-muted font-normal">{startedAt.fromNow()}</div>
+              </div>
+            ) : (
+              <span className="text-wati-muted italic text-[14px]">No messages yet</span>
+            )}
+          </Field>
+          <Field icon={Clock} label={`${ws.totalHours}h customer-service window`} border={false}>
+            {ws.expired ? (
+              <span className="text-red-600 font-medium">Window closed — templates only</span>
+            ) : !contact.lastCustomerMessageAt ? (
+              <span className="text-wati-muted italic text-[14px]">No customer message yet</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span
+                  className={clsx(
+                    'font-mono font-medium px-2 py-0.5 rounded text-[13px]',
+                    ws.danger
+                      ? 'bg-red-50 text-red-700 animate-pulse'
+                      : 'bg-green-50 text-green-700'
+                  )}
+                >
+                  {formatCountdown(ws.remainingMs)}
                 </span>
+                <span className="text-[12px] text-wati-muted">remaining</span>
+              </div>
+            )}
+          </Field>
+        </div>
+
+        {/* Card 2: Acquisition & Status */}
+        <div className="bg-white shadow-sm mt-2 py-1">
+          <Field icon={Globe2} label="Acquisition Source">
+            <span className="inline-flex items-center gap-2 font-medium">
+              <ChannelIcon source={contact.source} size={20} />
+              <span>{getSourceMeta(contact.source).label}</span>
+            </span>
+          </Field>
+
+          {(contact.source === 'facebook_ad' || contact.source === 'instagram_ad') && contact.referral && (
+            <Field icon={Megaphone} label="Ad details">
+              {contact.referral.headline && (
+                <div className="font-medium text-[14px]">{contact.referral.headline}</div>
               )}
+              {contact.referral.body && (
+                <div className="text-[13px] text-wati-muted mt-1 line-clamp-2">{contact.referral.body}</div>
+              )}
+              {contact.referral.source_url && (
+                <a
+                  href={contact.referral.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block mt-1 text-[13px] text-wati-primary hover:underline truncate"
+                >
+                  View source link
+                </a>
+              )}
+            </Field>
+          )}
+
+          <Field icon={MessageCircle} label="Call status" border={false}>
+            {callStatusLabel}
+          </Field>
+        </div>
+
+        {/* Card 3: Internal Notes */}
+        <div className="bg-white shadow-sm mt-2 px-5 py-4">
+          <div className="flex items-center justify-between text-[14px] text-wati-muted font-medium mb-3">
+            <div className="flex items-center gap-2">
+              <StickyNote size={18} strokeWidth={1.5} /> 
+              <span>Internal notes {noteEntries.length > 0 && `(${noteEntries.length})`}</span>
             </div>
             <button
               onClick={() => setNotesOpen(true)}
-              className="text-wati-primary hover:underline normal-case tracking-normal text-[11px]"
+              className="text-wati-primary hover:underline text-[13px] font-normal"
             >
               View all
             </button>
           </div>
+          
           <button
             onClick={() => setNotesOpen(true)}
-            className="mt-1 w-full text-left"
+            className="w-full text-left outline-none"
           >
             {latestNote ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded p-2 hover:bg-yellow-100/60 transition-colors">
-                <div className="text-yellow-900 text-xs whitespace-pre-wrap break-words line-clamp-3">
+              <div className="bg-[#fff9c4] border border-[#f5eb9d] rounded-lg p-3 hover:bg-[#fff59d] transition-colors shadow-sm">
+                <div className="text-yellow-900 text-[14px] whitespace-pre-wrap break-words line-clamp-3">
                   {latestNote.text}
                 </div>
-                <div className="text-[10px] text-yellow-700/80 mt-1">
+                <div className="text-[11px] text-yellow-700/80 mt-2 flex items-center gap-1.5 font-medium">
                   {latestNote.createdAt
                     ? ist(latestNote.createdAt).format('DD MMM YYYY, h:mm A')
                     : ''}
                   {noteEntries.length > 1 && (
-                    <span> · +{noteEntries.length - 1} older</span>
+                    <span>• +{noteEntries.length - 1} older</span>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-wati-muted italic border border-dashed border-gray-200 rounded p-2 hover:bg-gray-50">
+              <div className="text-[13px] text-wati-muted italic border-2 border-dashed border-gray-200 rounded-lg p-3 text-center hover:bg-gray-50 transition-colors">
                 No notes yet — click to add one
               </div>
             )}
           </button>
         </div>
 
-        {(contact.source === 'facebook_ad' || contact.source === 'instagram_ad') && contact.referral && (
-          <Field icon={Megaphone} label="Acquired from">
-            {contact.referral.headline && (
-              <div className="font-medium">{contact.referral.headline}</div>
-            )}
-            {contact.referral.body && (
-              <div className="text-xs text-wati-muted mt-1 line-clamp-3">{contact.referral.body}</div>
-            )}
-            {contact.referral.source_url && (
-              <a
-                href={contact.referral.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className="block mt-1 text-xs text-wati-primary hover:underline truncate"
-              >
-                {contact.referral.source_url}
-              </a>
-            )}
-            {contact.referral.source_id && (
-              <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-wati-muted">
-                <Hash size={11} /> {contact.referral.source_id}
-              </div>
-            )}
-          </Field>
-        )}
-
-        <Field icon={Hash} label="Contact ID">
-          <code className="text-xs text-wati-muted break-all">{contact._id}</code>
-        </Field>
+        {/* Meta */}
+        <div className="mt-4 text-center">
+          <div className="text-[11px] text-wati-muted flex justify-center items-center gap-1.5">
+             <Hash size={12} /> Contact ID: <code className="bg-black/5 px-1 rounded">{contact._id}</code>
+          </div>
+        </div>
       </div>
 
       {notesOpen && (

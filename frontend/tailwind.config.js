@@ -5,16 +5,17 @@ export default {
     extend: {
       colors: {
         wati: {
-          primary: '#00a884',
-          primaryDark: '#008069',
-          bg: '#efeae2',
+          primary: '#00a884', // Classic WhatsApp Accent
+          primaryDark: '#008069', // Classic WhatsApp Teal
+          bg: '#e5ddd5', // WhatsApp Chat background
           sidebar: '#ffffff',
-          panel: '#f0f2f5',
-          bubbleOut: '#d9fdd3',
-          bubbleIn: '#ffffff',
+          panel: '#f0f2f5', // WhatsApp Panel Header
+          bubbleOut: '#dcf8c6', // WhatsApp Sent Bubble
+          bubbleIn: '#ffffff', // WhatsApp Received Bubble
           text: '#111b21',
-          muted: '#667781',
-          header: '#008069',
+          muted: '#54656f',
+          header: '#f0f2f5',
+          border: '#d1d7db',
         },
       },
       fontFamily: {

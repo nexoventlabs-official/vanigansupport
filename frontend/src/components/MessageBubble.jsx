@@ -60,12 +60,22 @@ function ReplyQuote({ wamid, allMessages }) {
     `[${original.type}]`;
   const oneLine = sourceText.replace(/\s+/g, ' ').trim();
   const preview = oneLine.length > 80 ? oneLine.slice(0, 80) + '…' : oneLine;
+  const isCustomer = original.direction === 'inbound';
+
   return (
-    <div className="mb-1 pl-2 border-l-4 border-wati-primary bg-black/5 rounded-r text-xs text-wati-muted py-1 px-2 max-w-[280px]">
-      <div className="font-medium text-wati-primary">
-        {original.direction === 'inbound' ? 'Customer' : 'You'}
+    <div className={clsx(
+      "mb-1.5 rounded-md overflow-hidden border-l-[3px] max-w-sm",
+      isCustomer ? "bg-black/5 border-[#128C7E]" : "bg-black/5 border-wati-primary"
+    )}>
+      <div className="px-2.5 py-1.5 text-xs">
+        <div className={clsx(
+          "font-semibold mb-0.5",
+          isCustomer ? "text-[#128C7E]" : "text-wati-primary"
+        )}>
+          {isCustomer ? 'Customer' : 'You'}
+        </div>
+        <div className="truncate text-[13px] text-wati-text/80">{preview}</div>
       </div>
-      <div className="truncate">{preview}</div>
     </div>
   );
 }
@@ -391,14 +401,14 @@ export default function MessageBubble({ message: m, allMessages, onReply, onDele
             )}
             {(m.type === 'interactive' || m.type === 'button') && (m.text || m.caption) ? (
               // Customer tapped a native quick-reply / cta button. Render it as
-              // a pill so it's visually distinct from a typed message.
-              <div className="inline-flex items-center gap-1.5 text-sm pr-14">
-                <span className="inline-block px-2.5 py-1 rounded-full bg-wati-primary/10 border border-wati-primary/30 text-wati-primary font-medium">
-                  ↳ {m.text || m.caption}
+              // a distinct pill so it looks like an action response.
+              <div className="inline-flex items-center text-sm pr-14 mt-1 mb-0.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/5 border border-black/5 shadow-sm text-wati-text font-medium">
+                  <span className="text-wati-primary font-bold">↳</span> {m.text || m.caption}
                 </span>
               </div>
             ) : (m.text || m.caption) && (
-              <div className="whitespace-pre-wrap text-sm pr-14 text-wati-text">
+              <div className="whitespace-pre-wrap text-[14px] leading-snug pr-14 text-wati-text">
                 {m.text || m.caption}
               </div>
             )}
