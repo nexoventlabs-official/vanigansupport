@@ -291,62 +291,170 @@ async function streamExcel(res, rows, range, filename) {
 }
 
 // --- PDF writer -------------------------------------------------------------
+// Renders a landscape A4 table that mirrors the Excel "Contacts" sheet:
+// one row per contact, with bullet-formatted cells for status changes / notes.
+// We hand-roll the table (PDFKit has no built-in table) so we can:
+//   * compute per-row height from the tallest cell,
+//   * repeat the header on every page,
+//   * draw grid lines and header fill manually.
 function streamPdf(res, rows, range, filename) {
-  const doc = new PDFDocument({ size: 'A4', margin: 36, layout: 'landscape' });
+  const doc = new PDFDocument({ size: 'A4', margin: 28, layout: 'landscape' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   doc.pipe(res);
 
-  // Title block
-  doc.fontSize(18).fillColor('#22A06B').text('Vanigan Support — Contact Report', { align: 'left' });
-  doc.moveDown(0.2);
-  doc.fontSize(10).fillColor('#444');
+  // Mirror the Excel "N/A" treatment so "— None —" never appears in cells.
+  const cellStatus = (label) => (!label || label === '— None —' ? 'N/A' : label);
+
+  // Column definitions. Widths sum to the usable page width (landscape A4
+  // 842pt - 2*28pt margins = 786pt). Fonts are deliberately small so all
+  // columns fit comfortably; users can zoom in for fine print.
+  const COLS = [
+    { key: 'name',           header: 'Name',         width: 80 },
+    { key: 'whatsappName',   header: 'WhatsApp',     width: 70 },
+    { key: 'mobile',         header: 'Mobile',       width: 78 },
+    { key: 'source',         header: 'Source',       width: 56 },
+    { key: 'callStatus',     header: 'Status',       width: 78 },
+    { key: 'firstMessageAt', header: 'First Msg At', width: 78 },
+    { key: 'lastMessageAt',  header: 'Last Msg At',  width: 78 },
+    { key: 'history',        header: 'Status Changes', width: 134 },
+    { key: 'notes',          header: 'Notes',        width: 134 },
+  ];
+  const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
+  const PADDING_X = 4;
+  const PADDING_Y = 4;
+  const HEADER_HEIGHT = 22;
+  const FONT_SIZE = 8;
+  const HEADER_FONT_SIZE = 9;
+  const LEFT = doc.page.margins.left;
+
+  // --- Title block (first page only) ---
+  doc.fontSize(16).fillColor('#22A06B').text('Vanigan Support — Contact Report', LEFT, doc.page.margins.top);
+  doc.fontSize(9).fillColor('#444');
   const rangeLabel = range.from || range.to
     ? `Range: ${range.from ? fmt(range.from) : '—'}  to  ${range.to ? fmt(range.to) : '—'}`
     : 'Range: All time';
-  doc.text(rangeLabel);
-  doc.text(`Generated: ${fmt(new Date())}   |   Contacts: ${rows.length}`);
-  doc.moveDown(0.6);
+  doc.text(rangeLabel, LEFT);
+  doc.text(`Generated: ${fmt(new Date())}   |   Contacts: ${rows.length}`, LEFT);
+  doc.moveDown(0.4);
 
-  for (const r of rows) {
-    // Stop near the bottom of the page and start a new one
-    if (doc.y > doc.page.height - 120) doc.addPage();
-
-    doc.fontSize(12).fillColor('#111').text(`${r.name || '(unnamed)'}    ${r.mobile}`);
-    doc.fontSize(9).fillColor('#555').text(
-      `Source: ${r.source}    |    Current status: ${r.callStatus}    |    First msg: ${fmt(r.firstMessageAt) || '—'}    |    Last msg: ${fmt(r.lastMessageAt) || '—'}`
-    );
-    if (r.firstMessagePreview) {
-      doc.fontSize(9).fillColor('#666').text(`First message: ${r.firstMessagePreview}`, { width: 720 });
+  // Helper: draw the header row at the current y, then advance y past it.
+  function drawHeader() {
+    const y = doc.y;
+    // Header background
+    doc.rect(LEFT, y, TABLE_WIDTH, HEADER_HEIGHT).fill('#22A06B');
+    let x = LEFT;
+    doc.font('Helvetica-Bold').fontSize(HEADER_FONT_SIZE).fillColor('#FFFFFF');
+    for (const col of COLS) {
+      doc.text(col.header, x + PADDING_X, y + (HEADER_HEIGHT - HEADER_FONT_SIZE) / 2 - 1, {
+        width: col.width - PADDING_X * 2,
+        height: HEADER_FONT_SIZE + 2,
+        ellipsis: true,
+        lineBreak: false,
+      });
+      x += col.width;
     }
-
-    if (r.callStatusHistory.length > 0) {
-      doc.moveDown(0.2);
-      doc.fontSize(9).fillColor('#22A06B').text('Call status history:');
-      doc.fontSize(9).fillColor('#333');
-      for (const h of r.callStatusHistory) {
-        doc.text(`  • ${h.status}  —  ${fmt(h.at)}`);
+    // Vertical grid lines through the header
+    doc.strokeColor('#1d8a5c').lineWidth(0.5);
+    let gx = LEFT;
+    for (const col of COLS) {
+      gx += col.width;
+      if (gx < LEFT + TABLE_WIDTH) {
+        doc.moveTo(gx, y).lineTo(gx, y + HEADER_HEIGHT).stroke();
       }
     }
-
-    if (r.notes.length > 0) {
-      doc.moveDown(0.2);
-      doc.fontSize(9).fillColor('#22A06B').text('Internal notes:');
-      doc.fontSize(9).fillColor('#333');
-      for (const n of r.notes) {
-        doc.text(`  • [${fmt(n.at)}]  ${n.text}`, { width: 720 });
-      }
-    } else if (r.comment) {
-      doc.moveDown(0.2);
-      doc.fontSize(9).fillColor('#22A06B').text('Comment:');
-      doc.fontSize(9).fillColor('#333').text(`  • ${r.comment}`, { width: 720 });
-    }
-
-    doc.moveDown(0.4);
-    doc.strokeColor('#dddddd').lineWidth(0.5)
-      .moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
-    doc.moveDown(0.4);
+    doc.y = y + HEADER_HEIGHT;
+    doc.font('Helvetica').fontSize(FONT_SIZE).fillColor('#000');
   }
+
+  // Helper: produce the cell value (string) for a given column key.
+  function cellValue(r, key) {
+    switch (key) {
+      case 'name':           return r.name || '(unnamed)';
+      case 'whatsappName':   return r.whatsappName || '';
+      case 'mobile':         return r.mobile || '';
+      case 'source':         return r.source || '';
+      case 'callStatus':     return cellStatus(r.callStatus);
+      case 'firstMessageAt': return fmt(r.firstMessageAt) || '—';
+      case 'lastMessageAt':  return fmt(r.lastMessageAt) || '—';
+      case 'history':
+        return r.callStatusHistory.length === 0
+          ? '—'
+          : r.callStatusHistory.map((h) => `• ${cellStatus(h.status)} @ ${fmt(h.at)}`).join('\n');
+      case 'notes':
+        return r.notes.length === 0
+          ? '—'
+          : r.notes.map((n) => `• [${fmt(n.at)}] ${n.text}`).join('\n');
+      default: return '';
+    }
+  }
+
+  // Helper: measure the tallest cell in a row at the configured font size.
+  function measureRowHeight(r) {
+    doc.font('Helvetica').fontSize(FONT_SIZE);
+    let max = FONT_SIZE + 2;
+    for (const col of COLS) {
+      const txt = cellValue(r, col.key);
+      const h = doc.heightOfString(txt || ' ', {
+        width: col.width - PADDING_X * 2,
+      });
+      if (h > max) max = h;
+    }
+    return max + PADDING_Y * 2;
+  }
+
+  // Helper: draw one data row at doc.y.
+  function drawRow(r, height, zebra) {
+    const y = doc.y;
+    if (zebra) {
+      doc.rect(LEFT, y, TABLE_WIDTH, height).fill('#f6faf8');
+    }
+    // Vertical grid
+    doc.strokeColor('#dddddd').lineWidth(0.5);
+    let gx = LEFT;
+    doc.moveTo(gx, y).lineTo(gx, y + height).stroke(); // left edge
+    for (const col of COLS) {
+      gx += col.width;
+      doc.moveTo(gx, y).lineTo(gx, y + height).stroke();
+    }
+    // Bottom edge
+    doc.moveTo(LEFT, y + height).lineTo(LEFT + TABLE_WIDTH, y + height).stroke();
+
+    // Cell text
+    let x = LEFT;
+    doc.font('Helvetica').fontSize(FONT_SIZE).fillColor('#111');
+    for (const col of COLS) {
+      doc.text(cellValue(r, col.key), x + PADDING_X, y + PADDING_Y, {
+        width: col.width - PADDING_X * 2,
+      });
+      x += col.width;
+    }
+    doc.y = y + height;
+  }
+
+  drawHeader();
+
+  const bottomLimit = doc.page.height - doc.page.margins.bottom;
+  let zebra = false;
+  for (const r of rows) {
+    const rowH = measureRowHeight(r);
+
+    // Page break: if this row won't fit, start a new page and re-draw header.
+    if (doc.y + rowH > bottomLimit) {
+      doc.addPage();
+      doc.y = doc.page.margins.top;
+      drawHeader();
+    }
+    drawRow(r, rowH, zebra);
+    zebra = !zebra;
+  }
+
+  // Footer note on the last page
+  doc.moveDown(0.3);
+  doc.fontSize(7).fillColor('#888').text(
+    'Vanigan Support · audit log is append-only · cleared on Clear chat',
+    LEFT
+  );
 
   doc.end();
 }
